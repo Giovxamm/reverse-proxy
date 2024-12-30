@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: reverse-proxy
 
     steps:
       # Step 1: Checkout del codice
@@ -34,8 +36,8 @@ jobs:
           
       # Step 5: Build e Push dell'immagine Docker
       - name: Build and Push Docker Image
-        env:
-          IMAGE_NAME: reverse-proxy
+        #env:
+          #IMAGE_NAME: reverse-proxy
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           REGION=eu-south-1
@@ -70,7 +72,7 @@ jobs:
         run: |
           # Ottieni l'ID account AWS
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          REGION=eu-south-1  # Sostituisci con la tua regione
+          REGION=eu-south-1 
 
           # Verifica il valore dell'account ID e della regione
           echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
