@@ -22,11 +22,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # Step 3: Login a Amazon ECR
+      # Step 3: Crea il repository se non esiste
+      - name: Ensure ECR Repository Exists
+        run: |
+          aws ecr describe-repositories --repository-names reverse-proxy || \
+          aws ecr create-repository --repository-name reverse-proxy
+
+      # Step 4: Login a Amazon ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      # Step 4: Build e Push dell'immagine Docker
+      # Step 5: Build e Push dell'Immagine Docker
       - name: Build and Push Docker Image
         env:
           IMAGE_NAME: reverse-proxy
@@ -43,7 +49,7 @@ jobs:
           # Push dell'immagine su Amazon ECR
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest
 
-      # Step 5: Recupera la configurazione dall'infrastruttura
+      # Step 6: Recupera la configurazione dall'infrastruttura
       - name: Retrieve Configuration
         run: |
           aws s3 cp s3://shared-state/environments/dev/terraform.tfstate terraform.tfstate
@@ -55,7 +61,7 @@ jobs:
           echo "SUBNETS=$SUBNETS" >> $GITHUB_ENV
           echo "SG_ID=$SG_ID" >> $GITHUB_ENV
 
-      # Step 6: Aggiorna la Task Definition
+      # Step 7: Aggiorna la Task Definition
       - name: Update Task Definition
         run: |
           TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition reverse-proxy-dev)
@@ -66,7 +72,7 @@ jobs:
 
           aws ecs register-task-definition --cli-input-json file://updated-task-definition.json
 
-      # Step 7: Aggiorna il servizio ECS
+      # Step 8: Aggiorna il servizio ECS
       - name: Update ECS Service
         run: |
           aws ecs update-service \
