@@ -86,8 +86,7 @@ jobs:
               --task-definition reverse-proxy-dev \
               --desired-count 1 \
               --launch-type FARGATE \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
-              --force-new-deployment
+              --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}"
           fi
 
       # Step 10: Aggiorna il servizio ECS
