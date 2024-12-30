@@ -68,6 +68,14 @@ jobs:
       # Step 7: Aggiorna il file della Task Definition
       - name: Update Task Definition
         run: |
+          # Ottieni l'ID account AWS
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGION=eu-south-1  # Sostituisci con la tua regione
+
+          # Verifica il valore dell'account ID e della regione
+          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
+          echo "REGION: $REGION"
+
           cp task-definition.json task-definition-updated.json
           sed -i "s|<IMAGE_PLACEHOLDER>|$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest|g" task-definition-updated.json
 
