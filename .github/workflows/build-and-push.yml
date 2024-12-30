@@ -82,7 +82,7 @@ jobs:
           if [ "$SERVICE_EXISTS" == "None" ]; then
             aws ecs create-service \
               --cluster $CLUSTER_NAME \
-              --service reverse-proxy-dev \
+              --services reverse-proxy-dev \
               --task-definition reverse-proxy-dev \
               --desired-count 1 \
               --launch-type FARGATE \
