@@ -9,7 +9,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      IMAGE_NAME: reverse-proxy
+      REPO_NAME: reverse-proxy-repo-dev
+      IMAGE_NAME: reverse-proxy-dev
+      SERVICE_NAME: reverse-proxy-dev
 
     steps:
       # Step 1: Checkout del codice
@@ -31,8 +33,8 @@ jobs:
       # Step 4: Verifica se il repository ECR esiste, altrimenti crealo
       - name: Ensure ECR Repository Exists
         run: |
-          aws ecr describe-repositories --region eu-south-1 --repository-names reverse-proxy || \
-          aws ecr create-repository --region eu-south-1 --repository-name reverse-proxy
+          aws ecr describe-repositories --region eu-south-1 --repository-names $REPO_NAME || \
+          aws ecr create-repository --region eu-south-1 --repository-name $REPO_NAME
           
       # Step 5: Build e Push dell'immagine Docker
       - name: Build and Push Docker Image
@@ -91,14 +93,14 @@ jobs:
       - name: Create ECS Service if not exists
         run: |
           # Verifica se il servizio esiste
-          SERVICE_EXISTS=$(aws ecs describe-services --cluster $CLUSTER_NAME --services reverse-proxy-dev --query "services[0].serviceName" --output text)
+          SERVICE_EXISTS=$(aws ecs describe-services --cluster $CLUSTER_NAME --services $SERVICE_NAME --query "services[0].serviceName" --output text)
 
           # Crea il servizio se non esiste
           if [ "$SERVICE_EXISTS" == "None" ]; then
             aws ecs create-service \
               --cluster $CLUSTER_NAME \
-              --service-name reverse-proxy-dev \
-              --task-definition reverse-proxy-dev \
+              --service-name $SERVICE_NAME \
+              --task-definition $SERVICE_NAME \
               --desired-count 1 \
               --launch-type FARGATE \
               --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}"
@@ -109,7 +111,7 @@ jobs:
         run: |
           aws ecs update-service \
             --cluster $CLUSTER_NAME \
-            --service reverse-proxy-dev \
-            --task-definition reverse-proxy-dev \
+            --service $SERVICE_NAME \
+            --task-definition $SERVICE_NAME \
             --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
             --force-new-deployment
