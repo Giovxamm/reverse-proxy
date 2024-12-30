@@ -57,6 +57,10 @@ jobs:
           SUBNETS=$(jq -r '.outputs.public_subnet_ids.value | join(",")' terraform.tfstate)
           SG_ID=$(jq -r '.outputs.reverse_proxy_sg_id.value' terraform.tfstate)
 
+          echo "CLUSTER_NAME=$CLUSTER_NAME"
+          echo "SUBNETS=$SUBNETS"
+          echo "SG_ID=$SG_ID"
+
           echo "CLUSTER_NAME=$CLUSTER_NAME" >> $GITHUB_ENV
           echo "SUBNETS=$SUBNETS" >> $GITHUB_ENV
           echo "SG_ID=$SG_ID" >> $GITHUB_ENV
