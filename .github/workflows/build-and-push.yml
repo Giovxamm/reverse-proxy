@@ -72,7 +72,25 @@ jobs:
         run: |
           aws ecs register-task-definition --cli-input-json file://task-definition-updated.json
 
-      # Step 9: Aggiorna il servizio ECS
+      # Step 9: Crea il servizio ECS se non esiste
+      - name: Create ECS Service if not exists
+        run: |
+          # Verifica se il servizio esiste
+          SERVICE_EXISTS=$(aws ecs describe-services --cluster $CLUSTER_NAME --services reverse-proxy-dev --query "services[0].serviceName" --output text)
+
+          # Crea il servizio se non esiste
+          if [ "$SERVICE_EXISTS" == "None" ]; then
+            aws ecs create-service \
+              --cluster $CLUSTER_NAME \
+              --service reverse-proxy-dev \
+              --task-definition reverse-proxy-dev \
+              --desired-count 1 \
+              --launch-type FARGATE \
+              --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
+              --force-new-deployment
+          fi
+
+      # Step 10: Aggiorna il servizio ECS
       - name: Update ECS Service
         run: |
           aws ecs update-service \
