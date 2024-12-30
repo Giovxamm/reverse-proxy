@@ -1,0 +1,77 @@
+name: Deploy Reverse Proxy to ECS
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout del codice dal repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Configura le credenziali AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Step 3: Login a Amazon ECR
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Step 4: Build e Push dell'immagine Docker
+      - name: Build and Push Docker Image
+        env:
+          IMAGE_NAME: reverse-proxy
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGION=us-east-1
+
+          # Build dell'immagine Docker
+          docker build -t $IMAGE_NAME .
+
+          # Tagging dell'immagine
+          docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest
+
+          # Push dell'immagine su Amazon ECR
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest
+
+      # Step 5: Recupera la configurazione dall'infrastruttura
+      - name: Retrieve Configuration
+        run: |
+          aws s3 cp s3://shared-state/environments/dev/terraform.tfstate terraform.tfstate
+          CLUSTER_NAME=$(jq -r '.outputs.ecs_cluster_id.value' terraform.tfstate)
+          SUBNETS=$(jq -r '.outputs.public_subnet_ids.value | join(",")' terraform.tfstate)
+          SG_ID=$(jq -r '.outputs.reverse_proxy_sg_id.value' terraform.tfstate)
+
+          echo "CLUSTER_NAME=$CLUSTER_NAME" >> $GITHUB_ENV
+          echo "SUBNETS=$SUBNETS" >> $GITHUB_ENV
+          echo "SG_ID=$SG_ID" >> $GITHUB_ENV
+
+      # Step 6: Aggiorna la Task Definition
+      - name: Update Task Definition
+        run: |
+          TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition reverse-proxy-dev)
+
+          UPDATED_TASK_DEFINITION=$(echo $TASK_DEFINITION | jq '.taskDefinition | .containerDefinitions[0].image = "'$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest'"')
+
+          echo $UPDATED_TASK_DEFINITION > updated-task-definition.json
+
+          aws ecs register-task-definition --cli-input-json file://updated-task-definition.json
+
+      # Step 7: Aggiorna il servizio ECS
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service \
+            --cluster $CLUSTER_NAME \
+            --service reverse-proxy-dev \
+            --task-definition reverse-proxy-dev \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
+            --force-new-deployment
