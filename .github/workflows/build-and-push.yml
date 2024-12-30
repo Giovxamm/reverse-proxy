@@ -75,6 +75,7 @@ jobs:
           # Verifica il valore dell'account ID e della regione
           echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
           echo "REGION: $REGION"
+          echo "IMAGE_NAME: $IMAGE_NAME"
 
           cp task-definition.json task-definition-updated.json
           sed -i "s|<IMAGE_PLACEHOLDER>|$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest|g" task-definition-updated.json
