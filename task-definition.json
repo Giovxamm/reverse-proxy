@@ -7,6 +7,14 @@
         "memory": 512,
         "cpu": 256,
         "essential": true,
+        "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/reverse-proxy",
+          "awslogs-region": "eu-south-1",
+          "awslogs-stream-prefix": "reverse-proxy"
+          }
+        },
         "portMappings": [
           {
             "containerPort": 80,
