@@ -81,9 +81,9 @@ jobs:
           echo "REGION: $REGION"
           echo "IMAGE_NAME: $IMAGE_NAME"
 
-          # Creazione del log group se non esiste
+          # Verifica l'esistenza del Log Group, se non esiste, crealo
           aws logs describe-log-groups --log-group-name "/ecs/reverse-proxy" || \
-          aws logs create-log-group --log-group-name "/ecs/reverse-proxy"
+          (echo "Creating log group..." && aws logs create-log-group --log-group-name "/ecs/reverse-proxy")
 
           cp task-definition.json task-definition-updated.json
           sed -i "s|<IMAGE_PLACEHOLDER>|$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME:$IMAGE_NAME|g" task-definition-updated.json
