@@ -48,10 +48,10 @@ jobs:
           docker build -t $IMAGE_NAME .
 
           # Tagging dell'immagine
-          docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest
+          docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME:$IMAGE_NAME
 
           # Push dell'immagine su Amazon ECR
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME:$IMAGE_NAME
 
       # Step 6: Recupera configurazioni da Terraform
       - name: Retrieve Configuration
@@ -82,7 +82,7 @@ jobs:
           echo "IMAGE_NAME: $IMAGE_NAME"
 
           cp task-definition.json task-definition-updated.json
-          sed -i "s|<IMAGE_PLACEHOLDER>|$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest|g" task-definition-updated.json
+          sed -i "s|<IMAGE_PLACEHOLDER>|$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME:$IMAGE_NAME|g" task-definition-updated.json
 
       # Step 8: Registra la Task Definition aggiornata
       - name: Register Task Definition
