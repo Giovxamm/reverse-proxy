@@ -26,7 +26,13 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      # Step 4: Build e Push dell'immagine Docker
+      # Step 4: Verifica se il repository ECR esiste, altrimenti crealo
+      - name: Ensure ECR Repository Exists
+        run: |
+          aws ecr describe-repositories --region eu-south-1 --repository-names reverse-proxy || \
+          aws ecr create-repository --region eu-south-1 --repository-name reverse-proxy
+          
+      # Step 5: Build e Push dell'immagine Docker
       - name: Build and Push Docker Image
         env:
           IMAGE_NAME: reverse-proxy
@@ -43,7 +49,7 @@ jobs:
           # Push dell'immagine su Amazon ECR
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest
 
-      # Step 5: Recupera configurazioni da Terraform
+      # Step 6: Recupera configurazioni da Terraform
       - name: Retrieve Configuration
         run: |
           aws s3 cp s3://shared-state/environments/dev/terraform.tfstate terraform.tfstate
@@ -55,18 +61,18 @@ jobs:
           echo "SUBNETS=$SUBNETS" >> $GITHUB_ENV
           echo "SG_ID=$SG_ID" >> $GITHUB_ENV
 
-      # Step 6: Aggiorna il file della Task Definition
+      # Step 7: Aggiorna il file della Task Definition
       - name: Update Task Definition
         run: |
           cp task-definition.json task-definition-updated.json
           sed -i "s|<IMAGE_PLACEHOLDER>|$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest|g" task-definition-updated.json
 
-      # Step 7: Registra la Task Definition aggiornata
+      # Step 8: Registra la Task Definition aggiornata
       - name: Register Task Definition
         run: |
           aws ecs register-task-definition --cli-input-json file://task-definition-updated.json
 
-      # Step 8: Aggiorna il servizio ECS
+      # Step 9: Aggiorna il servizio ECS
       - name: Update ECS Service
         run: |
           aws ecs update-service \
