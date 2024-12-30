@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout del codice dal repository
+      # Step 1: Checkout del codice
       - name: Checkout Code
         uses: actions/checkout@v3
 
@@ -22,17 +22,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # Step 3: Crea il repository se non esiste
-      - name: Ensure ECR Repository Exists
-        run: |
-          aws ecr describe-repositories --repository-names reverse-proxy || \
-          aws ecr create-repository --repository-name reverse-proxy
-
-      # Step 4: Login a Amazon ECR
+      # Step 3: Login a Amazon ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      # Step 5: Build e Push dell'Immagine Docker
+      # Step 4: Build e Push dell'immagine Docker
       - name: Build and Push Docker Image
         env:
           IMAGE_NAME: reverse-proxy
@@ -49,7 +43,7 @@ jobs:
           # Push dell'immagine su Amazon ECR
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest
 
-      # Step 6: Recupera la configurazione dall'infrastruttura
+      # Step 5: Recupera configurazioni da Terraform
       - name: Retrieve Configuration
         run: |
           aws s3 cp s3://shared-state/environments/dev/terraform.tfstate terraform.tfstate
@@ -61,16 +55,17 @@ jobs:
           echo "SUBNETS=$SUBNETS" >> $GITHUB_ENV
           echo "SG_ID=$SG_ID" >> $GITHUB_ENV
 
-      # Step 7: Aggiorna la Task Definition
+      # Step 6: Aggiorna il file della Task Definition
       - name: Update Task Definition
         run: |
-          TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition reverse-proxy-dev)
+          cp task-definition.json task-definition-updated.json
+          sed -i "s|<IMAGE_PLACEHOLDER>|$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest|g" task-definition-updated.json
+          sed -i "s|<EXECUTION_ROLE_ARN>|arn:aws:iam::$AWS_ACCOUNT_ID:role/ecsExecutionRole|g" task-definition-updated.json
 
-          UPDATED_TASK_DEFINITION=$(echo $TASK_DEFINITION | jq '.taskDefinition | .containerDefinitions[0].image = "'$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest'"')
-
-          echo $UPDATED_TASK_DEFINITION > updated-task-definition.json
-
-          aws ecs register-task-definition --cli-input-json file://updated-task-definition.json
+      # Step 7: Registra la Task Definition aggiornata
+      - name: Register Task Definition
+        run: |
+          aws ecs register-task-definition --cli-input-json file://task-definition-updated.json
 
       # Step 8: Aggiorna il servizio ECS
       - name: Update ECS Service
