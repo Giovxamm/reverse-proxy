@@ -60,7 +60,6 @@ jobs:
         run: |
           cp task-definition.json task-definition-updated.json
           sed -i "s|<IMAGE_PLACEHOLDER>|$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$IMAGE_NAME:latest|g" task-definition-updated.json
-          sed -i "s|<EXECUTION_ROLE_ARN>|arn:aws:iam::$AWS_ACCOUNT_ID:role/ecsExecutionRole|g" task-definition-updated.json
 
       # Step 7: Registra la Task Definition aggiornata
       - name: Register Task Definition
