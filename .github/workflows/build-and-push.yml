@@ -81,8 +81,10 @@ jobs:
           echo "REGION: $REGION"
           echo "IMAGE_NAME: $IMAGE_NAME"
 
-          # Verifica se il log group esiste
-          if ! aws logs describe-log-groups --log-group-name "/ecs/reverse-proxy" --query "logGroups[?logGroupName=='/ecs/reverse-proxy']" | grep -q '/ecs/reverse-proxy'; then
+          # Verifica se il log group esiste e crealo se non esiste
+          LOG_GROUP_EXISTS=$(aws logs describe-log-groups --log-group-name-prefix "/ecs/reverse-proxy" --query "logGroups[?logGroupName=='/ecs/reverse-proxy']" --output text)
+      
+          if [ "$LOG_GROUP_EXISTS" == "None" ]; then
             echo "Creating log group..."
             aws logs create-log-group --log-group-name "/ecs/reverse-proxy"
           else
